@@ -6,7 +6,7 @@ const { imageUploadHandler } = require('./routes/imageUploadHandler');
 
 const app = express();
 const port = process.env.PORT || 3000;
-
+app.set('trust proxy', true);
 app.use(helmet());
 app.use(morgan('tiny'));
 
