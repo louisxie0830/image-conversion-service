@@ -25,9 +25,10 @@ const compressImage = async (conversionImage, file) => {
         return await sharp(file.buffer).avif({ quality: 50 }).toBuffer();
       case 'tiff':
         return await sharp(file.buffer).tiff({ quality: 50 }).toBuffer();
+      default:
+        throw new Error('Unsupported image format');
     }
   } catch (error) {
-    console.error('Compression error:', error);
     throw new Error('Failed to compress image');
   }
 };
@@ -55,7 +56,6 @@ const getSafeFileName = (originalName) => {
 const imageUploadHandler = (req, res) => {
   upload.array('images', Number.MAX_SAFE_INTEGER)(req, res, async (error) => {
     if (error) {
-      console.error('Multer upload error:', error);
       return res.status(500).send('Error uploading files');
     }
 
@@ -68,14 +68,35 @@ const imageUploadHandler = (req, res) => {
       'Content-Disposition',
       'attachment; filename="compressed_images.zip"',
     );
+
     const archive = archiver('zip');
     archive.pipe(res);
+
+    archive.on('warning', function (err) {
+      if (err.code === 'ENOENT') {
+        console.warn('Archiving warning:', err);
+      } else {
+        throw err;
+      }
+    });
+
+    archive.on('error', function (err) {
+      res.status(500).send('Failed to create archive');
+    });
+
     try {
       for (const file of req.files) {
         const compressedBuffer = await compressImage(
-          req.body.conversionImageType || 'jpeg',
+          file.mimetype.replace('image/', ''),
           file,
         );
+        if (!compressedBuffer || !(compressedBuffer instanceof Buffer)) {
+          console.error(
+            'Invalid or missing buffer for file:',
+            file.originalname,
+          );
+          continue; // Skip this file or handle the error appropriately
+        }
         archive.append(compressedBuffer, {
           name: `compressed-${getSafeFileName(file.originalname)}`,
         });
@@ -83,7 +104,6 @@ const imageUploadHandler = (req, res) => {
 
       await archive.finalize();
     } catch (error) {
-      console.error('Error processing images:', error);
       res.status(500).send('Failed to process images');
     }
   });
