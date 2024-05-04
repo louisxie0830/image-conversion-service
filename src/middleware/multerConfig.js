@@ -3,7 +3,7 @@ const storage = multer.memoryStorage();
 
 const limits = {
   fileSize: 10 * 1024 * 1024,
-  files: 10,
+  files: Number.MAX_SAFE_INTEGER,
 };
 
 /**

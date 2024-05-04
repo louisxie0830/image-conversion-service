@@ -53,7 +53,7 @@ const getSafeFileName = (originalName) => {
  * @param {Object} res - The response object.
  */
 const imageUploadHandler = (req, res) => {
-  upload.array('images', 10)(req, res, async (error) => {
+  upload.array('images', Number.MAX_SAFE_INTEGER)(req, res, async (error) => {
     if (error) {
       console.error('Multer upload error:', error);
       return res.status(500).send('Error uploading files');

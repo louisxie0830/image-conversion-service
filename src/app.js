@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cors = require('cors');
 const { imageUploadHandler } = require('./routes/imageUploadHandler');
 
 const app = express();
@@ -9,6 +10,7 @@ const port = process.env.PORT || 3000;
 app.set('trust proxy', true);
 app.use(helmet());
 app.use(morgan('tiny'));
+app.use(cors());
 
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000,
@@ -17,7 +19,7 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(limiter);
+// app.use(limiter);
 
 app.use(express.json());
 
