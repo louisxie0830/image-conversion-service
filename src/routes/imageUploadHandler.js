@@ -72,7 +72,10 @@ const imageUploadHandler = (req, res) => {
     archive.pipe(res);
     try {
       for (const file of req.files) {
-        const compressedBuffer = await compressImage('jpeg', file);
+        const compressedBuffer = await compressImage(
+          req.body.conversionImageType || 'jpeg',
+          file,
+        );
         archive.append(compressedBuffer, {
           name: `compressed-${getSafeFileName(file.originalname)}`,
         });
