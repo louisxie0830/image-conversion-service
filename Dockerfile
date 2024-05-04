@@ -1,9 +1,14 @@
-FROM node:20 as builder
+# Use a more focused base image
+FROM node:20-slim as builder
 
 WORKDIR /workspace
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git python3 make build-essential libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb && \
+# Combine update, install and cleanup to reduce layer size and ensure all actions are in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    python3 \
+    make \
+    build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     npm set progress=false && \
@@ -12,16 +17,23 @@ RUN apt-get update && \
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:20
+# Using node slim again to ensure only necessary packages are installed
+FROM node:20-slim
 WORKDIR /workspace
 
-RUN apt-get update && apt-get install -y --no-install-recommends libvips gconf-service libasound2 libatk1.0-0 libatk-bridge2.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget libio-compress-perl libfreetype6 ttf-dejavu ttf-wqy-zenhei fontconfig && fc-cache -fv
+# Only install necessary runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libvips && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    fc-cache -fv
 
+# Copy only necessary files
 COPY --from=builder /workspace/node_modules node_modules/
 COPY ./ecosystem.config.js .
 COPY ./package.json .
 COPY ./src src/
 
-EXPOSE 3000 3000
+EXPOSE 3000
 
-CMD ["npm","run","run-prod"]
+CMD ["npm", "run", "run-prod"]
